@@ -1,0 +1,214 @@
+openapi: 3.0.2
+info:
+  title: Funny Bunny Refund APIs
+  version: 1.0.0
+  description: >-
+    This API enables seamless integration with the PAYMENTIC platform, allowing clients to initiate and
+    manage payment transactions.  It offers endpoints for creating payment requests, retrieving payment
+    data, and managing payment orders.
+  contact:
+    name: Claudio E. de Oliveira
+    email: claudioed.oliveira@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+paths:
+  /refunds:
+    post:
+      requestBody:
+        description: >
+          The request body must include the details of the refund to be processed. This includes the
+          unique ID of the original payment transaction and the specific amount that needs to be
+          refunded. The request can also include an optional reason for the refund, aiding in
+          maintaining comprehensive transaction records.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/refund-request'
+        required: true
+      tags:
+        - refunds
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/refund-response'
+          description: >
+            The response indicates that the refund request has been accepted and is currently
+            being processed. A successful response will include a unique refund transaction ID,
+            which can be used to track the status of the refund. Note that this response does not
+            imply the completion of the refund, but rather the initiation of the refund process.
+        '401':
+          $ref: '#/components/responses/res-401'
+          description: Unauthorized access. The client failed to provide valid authentication credentials.
+        '403':
+          $ref: '#/components/responses/res-403'
+          description: Forbidden access. The client does not have permission to perform the refund request.
+        '422':
+          $ref: '#/components/responses/res-422'
+          description: >-
+            Unprocessable Entity. The request contains valid data but it cannot be processed,
+            possibly due to business logic conditions.
+        '500':
+          $ref: '#/components/responses/res-500'
+          description: >-
+            Internal Server Error. An unexpected error occurred on the server while processing the
+            refund request.
+      operationId: create-refund
+      summary: Request a Refund
+      description: >
+        This endpoint allows clients to request a refund for a previously completed payment. It
+        requires details of the original payment and the amount to be refunded. The refund process
+        involves validating the original transaction, ensuring the refund amount is appropriate, and
+        then initiating the refund process. The endpoint is designed to handle refunds in a secure
+    parameters:
+      -
+        name: Idempotency-Key
+        description: >
+          A unique key used to prevent duplicate transactions in case of multiple requests. This key
+          ensures that retrying the same payment request does not result in multiple transactions.
+        schema:
+          type: string
+        in: header
+        required: true
+components:
+  schemas:
+    error-401:
+      title: error-401
+      description: ''
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      example:
+        code: PAY-001
+        description: invalid authentication
+    error-403:
+      title: error-403
+      description: ''
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      example:
+        code: PAY-003
+        description: insufficient permissions
+    error-404:
+      title: error-404
+      description: ''
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      example:
+        code: PAY-404
+        description: resource not found
+    error-422:
+      title: error-422
+      description: ''
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      example:
+        code: PAY-002
+        description: insufficient funds
+    error-500:
+      title: error-500
+      description: ''
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      example:
+        code: PAY-500
+        description: internal server error
+    refund-request:
+      required:
+        - payment_id
+        - amount
+        - currency
+      type: object
+      properties:
+        payment_id:
+          description: The unique identifier of the original payment transaction to be refunded.
+          type: string
+        amount:
+          description: >-
+            The amount to be refunded. This must be equal to or less than the original transaction
+            amount.
+          type: string
+        reason:
+          description: An optional description of the reason for the refund.
+          type: string
+        currency:
+          description: The currency of this transaction
+          type: string
+      example:
+        payment_id: '123456789'
+        amount: '100.00'
+        reason: Product returned by customer
+        currency: BRL
+    refund-response:
+      type: object
+      properties:
+        refund_id:
+          description: The unique identifier of the refund transaction.
+          type: string
+        status:
+          description: The current status of the refund request.
+          type: string
+      example:
+        refund_id: '987654321'
+        status: Processing
+  responses:
+    res-500:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error-500'
+      description: ''
+    res-401:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error-401'
+      description: ''
+    res-403:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error-403'
+      description: ''
+    res-422:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error-422'
+      description: ''
+  securitySchemes:
+    hydra:
+      openIdConnectUrl: 'https://competent-cori-vgu1750x6j.projects.oryapis.com/.well-known/openid-configuration'
+      type: openIdConnect
+security:
+  -
+    hydra:
+      - payments.write
+      - payments.read
+      - refunds.write
+      - refunds.read
+tags:
+  -
+    name: refunds
+    description: Refunds Operations
